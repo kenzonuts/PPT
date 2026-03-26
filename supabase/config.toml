@@ -1,0 +1,9 @@
+# Supabase CLI: https://supabase.com/docs/guides/cli
+# Jalankan: supabase link --project-ref <ref> && supabase db push
+
+[api]
+enabled = true
+
+[db]
+# Sesuaikan dengan versi Postgres proyek Supabase Anda (biasanya 15+).
+major_version = 15
