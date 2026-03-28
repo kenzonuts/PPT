@@ -35,7 +35,7 @@ export function RankPicker({ id, value, onChange }: Props) {
   const showEmptyState = grouped.length === 0 && query.trim() !== "";
 
   return (
-    <div className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+    <div className="space-y-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)]/90 p-4 shadow-[0_4px_24px_rgba(0,0,0,0.18)] sm:p-5">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <label
           id={`${id}-label`}

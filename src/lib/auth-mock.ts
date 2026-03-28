@@ -4,22 +4,29 @@
 
 import { ADMIN_SESSION_COOKIE, ADMIN_SESSION_VALUE } from "./auth-constants";
 
-export const MOCK_ADMIN_EMAIL = "admin@funmatch.local";
-export const MOCK_ADMIN_PASSWORD = "admin123";
+export const MOCK_ADMIN_EMAIL = "tuanmudakenzo@kenzo.id";
+export const MOCK_ADMIN_PASSWORD = "lagigamood";
 
 export function credentialsValid(email: string, password: string): boolean {
-  return email.trim() === MOCK_ADMIN_EMAIL && password === MOCK_ADMIN_PASSWORD;
+  return (
+    email.trim().toLowerCase() === MOCK_ADMIN_EMAIL.toLowerCase() &&
+    password === MOCK_ADMIN_PASSWORD
+  );
 }
+
+export const ADMIN_SESSION_CHANGED_EVENT = "funmatch-admin-session-changed";
 
 export function setAdminSessionCookie(): void {
   if (typeof document === "undefined") return;
   const maxAge = 60 * 60 * 24 * 7;
   document.cookie = `${ADMIN_SESSION_COOKIE}=${ADMIN_SESSION_VALUE}; path=/; max-age=${maxAge}; SameSite=Lax`;
+  window.dispatchEvent(new Event(ADMIN_SESSION_CHANGED_EVENT));
 }
 
 export function clearAdminSessionCookie(): void {
   if (typeof document === "undefined") return;
   document.cookie = `${ADMIN_SESSION_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
+  window.dispatchEvent(new Event(ADMIN_SESSION_CHANGED_EVENT));
 }
 
 export function isAdminSessionCookiePresent(): boolean {

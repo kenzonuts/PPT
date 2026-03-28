@@ -27,7 +27,7 @@ export default function RootLayout({
           <Header />
           <div className="flex-1">{children}</div>
           <footer className="border-t border-[var(--border)] px-4 py-6 pb-8 text-center text-xs leading-relaxed text-[var(--muted)] sm:pb-6">
-            Komunitas · Fun match · Para Pencari Tuhan
+            Komunitas · Fun match · Para Pencari Tuhan 
           </footer>
         </Providers>
       </body>

@@ -2,11 +2,11 @@
 
 import {
   credentialsValid,
-  MOCK_ADMIN_EMAIL,
+  isAdminSessionCookiePresent,
   setAdminSessionCookie,
 } from "@/lib/auth-mock";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Button } from "./ui/Button";
 import { Card, CardBody, CardHeader } from "./ui/Card";
 import { Input } from "./ui/Input";
@@ -20,6 +20,16 @@ function LoginFormInner() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    const dest = from.startsWith("/") ? from : "/admin";
+    if (isAdminSessionCookiePresent()) {
+      router.replace(dest);
+      return;
+    }
+    setShowForm(true);
+  }, [from, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -36,11 +46,19 @@ function LoginFormInner() {
     setLoading(false);
   }
 
+  if (!showForm) {
+    return (
+      <Card className="mx-auto max-w-md">
+        <CardBody className="py-12 text-center text-sm text-[var(--muted)]">Memeriksa sesi…</CardBody>
+      </Card>
+    );
+  }
+
   return (
     <Card className="mx-auto max-w-md">
       <CardHeader
         title="Masuk admin"
-        description="Akses terbatas untuk panitia. MVP: kredensial mock (lihat petunjuk di bawah)."
+        description="Akses terbatas untuk panitia. Sudah masuk? Kamu langsung diarahkan ke panel."
       />
       <CardBody>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -69,11 +87,7 @@ function LoginFormInner() {
             {loading ? "Memproses…" : "Masuk"}
           </Button>
         </form>
-        <p className="mt-6 rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface-elevated)]/50 p-3 text-xs leading-relaxed text-[var(--muted)]">
-          <strong className="text-[var(--foreground)]">Demo:</strong> email{" "}
-          <span className="font-mono text-[var(--accent)]">{MOCK_ADMIN_EMAIL}</span> · password{" "}
-          <span className="font-mono text-[var(--accent)]">admin123</span>
-        </p>
+
       </CardBody>
     </Card>
   );

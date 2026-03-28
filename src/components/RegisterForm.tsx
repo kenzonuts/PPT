@@ -10,7 +10,8 @@ import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
 import { Textarea } from "./ui/Textarea";
 
-const RIOT_ID_RE = /^[^#]+#\d+$/;
+/** Tag setelah # boleh huruf dan/atau angka (sesuai Riot ID). */
+const RIOT_ID_RE = /^[^\s#]+#[A-Za-z0-9]+$/;
 
 type FieldErrors = Partial<Record<string, string>>;
 
@@ -20,7 +21,6 @@ export function RegisterForm() {
   const [riotId, setRiotId] = useState("");
   const [rank, setRank] = useState<ValorantRank | "">("");
   const [contact, setContact] = useState("");
-  const [availability, setAvailability] = useState("");
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [submitted, setSubmitted] = useState(false);
@@ -32,11 +32,9 @@ export function RegisterForm() {
     const rid = riotId.trim();
     if (!rid) next.riot_id = "Riot ID wajib diisi.";
     else if (!RIOT_ID_RE.test(rid))
-      next.riot_id = "Format: NamaInGame#1234 (tag angka setelah #).";
+      next.riot_id = "Format: NamaInGame#tag — setelah # pakai huruf dan/atau angka (tanpa spasi).";
     if (!rank) next.rank = "Pilih rank kamu.";
-    if (!contact.trim()) next.contact = "Kontak WhatsApp atau Discord wajib diisi.";
-    if (!availability.trim())
-      next.availability = "Isi ketersediaan waktu (mis. weekday malam, weekend).";
+    if (!contact.trim()) next.contact = "Kontak Discord wajib diisi.";
     setErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -51,7 +49,6 @@ export function RegisterForm() {
       riot_id: riotId.trim(),
       rank: rank as ValorantRank,
       contact: contact.trim(),
-      availability: availability.trim(),
       notes: notes.trim(),
     });
     setSubmitting(false);
@@ -64,7 +61,6 @@ export function RegisterForm() {
     setRiotId("");
     setRank("");
     setContact("");
-    setAvailability("");
     setNotes("");
     setErrors({});
   }
@@ -113,8 +109,8 @@ export function RegisterForm() {
           <Input
             id="riot-id"
             label="Riot ID"
-            placeholder="NamaInGame#1234"
-            hint="Format nama dengan tag angka setelah tanda #."
+            placeholder="NamaInGame#AB12"
+            hint="Format: nama in-game, tanda #, lalu tag (huruf dan/atau angka)."
             value={riotId}
             onChange={(e) => setRiotId(e.target.value)}
             error={errors.riot_id}
@@ -138,19 +134,11 @@ export function RegisterForm() {
           </Select>
           <Input
             id="contact"
-            label="Kontak (WhatsApp / Discord)"
-            placeholder="Contoh: 08… atau user#0000"
+            label="Kontak (Discord)"
+            placeholder="Contoh: user#0000"
             value={contact}
             onChange={(e) => setContact(e.target.value)}
             error={errors.contact}
-          />
-          <Input
-            id="availability"
-            label="Ketersediaan waktu"
-            placeholder="Mis. Sen–Jum malam, weekend fleksibel"
-            value={availability}
-            onChange={(e) => setAvailability(e.target.value)}
-            error={errors.availability}
           />
           <Textarea
             id="notes"

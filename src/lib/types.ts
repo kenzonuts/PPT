@@ -32,7 +32,6 @@ export interface Player {
   riot_id: string;
   rank: ValorantRank;
   contact: string;
-  availability: string;
   notes: string;
   created_at: string;
 }

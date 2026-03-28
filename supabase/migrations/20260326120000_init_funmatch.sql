@@ -13,7 +13,6 @@ create table if not exists public.players (
   riot_id text not null,
   rank text not null,
   contact text not null,
-  availability text not null,
   notes text not null default '',
   created_at timestamptz not null default now(),
   constraint players_riot_id_key unique (riot_id)

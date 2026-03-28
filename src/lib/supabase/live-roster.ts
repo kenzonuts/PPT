@@ -41,7 +41,6 @@ export function mapLiveRosterToState(rows: LiveRosterRow[] | null): TournamentSt
           riot_id: r.riot_id ?? "",
           rank: (r.rank as ValorantRank) || "Iron",
           contact: "",
-          availability: "",
           notes: "",
           created_at: STUB,
         });
