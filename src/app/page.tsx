@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/Button";
+import { Card, CardBody } from "@/components/ui/Card";
 import Link from "next/link";
 
 export default function HomePage() {
@@ -39,6 +40,52 @@ export default function HomePage() {
               </Button>
             </Link>
           </div>
+        </div>
+      </section>
+
+      <section className="border-t border-[var(--border)] bg-[var(--background)]">
+        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-14">
+          <p className="mb-4 text-center text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
+            Jadwal & catatan penting
+          </p>
+          <Card className="mx-auto max-w-3xl border-[var(--accent)]/20 shadow-[0_8px_40px_rgba(0,0,0,0.2)]">
+            <CardBody className="space-y-6 sm:px-8 sm:py-8">
+              <div className="border-l-2 border-[var(--accent)] pl-4">
+                <h2 className="text-base font-semibold text-[var(--foreground)] sm:text-lg">
+                  Waktu pertandingan
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--muted)] sm:text-base">
+                  <span className="font-medium text-[var(--foreground)]">18 April 2026</span>
+                  , pukul{" "}
+                  <span className="font-medium text-[var(--foreground)]">19.30 WIB</span>.
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+                  Diusahakan sudah berkumpul pukul{" "}
+                  <span className="font-medium text-[var(--foreground)]">19.15 WIB</span> untuk
+                  sesi informasi dari panitia.
+                </p>
+              </div>
+              <div className="border-l-2 border-[var(--border)] pl-4">
+                <h2 className="text-base font-semibold text-[var(--foreground)] sm:text-lg">
+                  Konfirmasi kehadiran
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--muted)] sm:text-base">
+                  Wajib melakukan konfirmasi kepada admin paling lambat{" "}
+                  <span className="text-[var(--foreground)]">1 hari sebelum</span> pertandingan,
+                  atau paling lambat{" "}
+                  <span className="text-[var(--foreground)]">2–3 jam sebelum</span> permainan
+                  dimulai. Peserta yang tidak mengonfirmasi sesuai ketentuan waktu tersebut dapat{" "}
+                  <span className="font-medium text-[var(--accent)]">dinyatakan diskualifikasi</span>.
+                </p>
+              </div>
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)]/40 px-4 py-3 sm:px-5">
+                <p className="text-sm font-medium text-[var(--foreground)]">Fair play</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-[var(--muted)]">
+                  Panitia tidak menerima segala bentuk tindakan yang berbau kecurangan.
+                </p>
+              </div>
+            </CardBody>
+          </Card>
         </div>
       </section>
 
