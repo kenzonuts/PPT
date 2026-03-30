@@ -68,6 +68,7 @@ export function AdminDashboard() {
   } = useTournament();
   const [newTeamName, setNewTeamName] = useState("");
   const [rankFilter, setRankFilter] = useState<ValorantRank | "">("");
+  const [nameSearch, setNameSearch] = useState("");
 
   const teamsSorted = useMemo(
     () =>
@@ -86,9 +87,23 @@ export function AdminDashboard() {
   );
 
   const playersFiltered = useMemo(() => {
-    if (!rankFilter) return playersSorted;
-    return playersSorted.filter((p) => p.rank === rankFilter);
-  }, [playersSorted, rankFilter]);
+    let list = playersSorted;
+    if (rankFilter) list = list.filter((p) => p.rank === rankFilter);
+    const q = nameSearch.trim().toLowerCase();
+    if (q) list = list.filter((p) => p.name.toLowerCase().includes(q));
+    return list;
+  }, [playersSorted, rankFilter, nameSearch]);
+
+  const listDescription = useMemo(() => {
+    const total = playersSorted.length;
+    const shown = playersFiltered.length;
+    const parts: string[] = [];
+    if (rankFilter) parts.push(`rank ${rankFilter}`);
+    const nq = nameSearch.trim();
+    if (nq) parts.push(`nama “${nq}”`);
+    if (parts.length === 0) return `Semua pendaftar · ${total} orang.`;
+    return `Filter: ${parts.join(" · ")} — menampilkan ${shown} dari ${total} peserta.`;
+  }, [playersSorted.length, playersFiltered.length, rankFilter, nameSearch]);
 
   const assignedPlayerIds = useMemo(
     () => new Set(state.team_members.map((m) => m.player_id)),
@@ -239,20 +254,22 @@ export function AdminDashboard() {
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:items-start lg:gap-10">
         <div className="min-w-0 space-y-6">
-          <div>
-            <SectionLabel>Filter rank</SectionLabel>
+          <div className="space-y-4">
+            <SectionLabel>Filter & pencarian</SectionLabel>
+            <Input
+              id="admin-name-search"
+              label="Cari berdasarkan nama"
+              placeholder="Ketik nama peserta…"
+              value={nameSearch}
+              onChange={(e) => setNameSearch(e.target.value)}
+              autoComplete="off"
+              hint="Tidak case-sensitive; mencocokkan bagian nama."
+            />
             <RankPicker id="admin-rank-filter" value={rankFilter} onChange={setRankFilter} />
           </div>
 
           <Card className="overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.28)]">
-            <CardHeader
-              title="Daftar peserta"
-              description={
-                rankFilter
-                  ? `Filter: ${rankFilter} — menampilkan ${playersFiltered.length} dari ${playersSorted.length} peserta.`
-                  : `Semua pendaftar · ${playersSorted.length} orang.`
-              }
-            />
+            <CardHeader title="Daftar peserta" description={listDescription} />
             <CardBody className="p-0">
               {playersSorted.length === 0 ? (
                 <div className="px-6 py-16 text-center">
@@ -263,7 +280,8 @@ export function AdminDashboard() {
                 </div>
               ) : playersFiltered.length === 0 ? (
                 <div className="px-6 py-16 text-center text-sm text-[var(--muted)]">
-                  Tidak ada peserta di rank ini. Pilih &quot;Semua rank&quot; atau filter lain.
+                  Tidak ada peserta yang cocok dengan filter saat ini. Sesuaikan pencarian nama,
+                  pilih &quot;Semua rank&quot;, atau kosongkan kolom cari.
                 </div>
               ) : (
                 <>

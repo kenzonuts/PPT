@@ -10,9 +10,6 @@ import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
 import { Textarea } from "./ui/Textarea";
 
-/** Tag setelah # boleh huruf dan/atau angka (sesuai Riot ID). */
-const RIOT_ID_RE = /^[^\s#]+#[A-Za-z0-9]+$/;
-
 type FieldErrors = Partial<Record<string, string>>;
 
 export function RegisterForm() {
@@ -31,8 +28,8 @@ export function RegisterForm() {
     if (!name.trim()) next.name = "Nama lengkap wajib diisi.";
     const rid = riotId.trim();
     if (!rid) next.riot_id = "Riot ID wajib diisi.";
-    else if (!RIOT_ID_RE.test(rid))
-      next.riot_id = "Format: NamaInGame#tag — setelah # pakai huruf dan/atau angka (tanpa spasi).";
+    else if (!rid.includes("#"))
+      next.riot_id = "Riot ID harus memuat tanda # (contoh: Nama#tag), sesuai yang di game.";
     if (!rank) next.rank = "Pilih rank kamu.";
     if (!contact.trim()) next.contact = "Kontak Discord wajib diisi.";
     setErrors(next);
@@ -109,8 +106,8 @@ export function RegisterForm() {
           <Input
             id="riot-id"
             label="Riot ID"
-            placeholder="NamaInGame#AB12"
-            hint="Format: nama in-game, tanda #, lalu tag (huruf dan/atau angka)."
+            placeholder="NamaInGame#tag"
+            hint="Isi persis seperti di client Riot/Valorant. Satu syarat: ada tanda #."
             value={riotId}
             onChange={(e) => setRiotId(e.target.value)}
             error={errors.riot_id}
