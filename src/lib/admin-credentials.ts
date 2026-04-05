@@ -12,6 +12,7 @@ const ACCOUNTS: ReadonlyArray<AdminAccount> = [
   { email: "tuanmudakenzo@kenzo.id", password: "lagigamood", displayName: "kenzo" },
   { email: "Yahahadmin@gmail.com", password: "1=1", displayName: "yaha" },
   { email: "bellacantik@gmail.com", password: "bellacantik", displayName: "bella" },
+  { email: "jejemonyed@gmail.com", password: "jejemonyed", displayName: "jeje" },
 ];
 
 export function normalizeAdminEmail(email: string): string {

@@ -14,4 +14,4 @@ create table if not exists public.admin_audit_logs (
 create index if not exists admin_audit_logs_created_at_idx
   on public.admin_audit_logs (created_at desc);
 
-alter table public.admin_audit_logs enable row level security;
+alter table public.admin_audit_logs enable row level security;  

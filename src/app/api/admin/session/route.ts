@@ -19,15 +19,45 @@ export async function GET() {
   return NextResponse.json({ ok: true, displayName: actor.displayName });
 }
 
+function parseCredentials(request: Request): Promise<{ email: string; password: string } | null> {
+  const ct = request.headers.get("content-type") ?? "";
+  if (ct.includes("application/json")) {
+    return request
+      .text()
+      .then((raw) => {
+        const trimmed = raw.trim();
+        if (!trimmed) return null;
+        try {
+          const body = JSON.parse(trimmed) as { email?: string; password?: string };
+          return {
+            email: String(body.email ?? ""),
+            password: String(body.password ?? ""),
+          };
+        } catch {
+          return null;
+        }
+      })
+      .catch(() => null);
+  }
+  return request
+    .formData()
+    .then((form) => ({
+      email: String(form.get("email") ?? ""),
+      password: String(form.get("password") ?? ""),
+    }))
+    .catch(() => null);
+}
+
 export async function POST(request: Request) {
-  let body: { email?: string; password?: string };
-  try {
-    body = (await request.json()) as { email?: string; password?: string };
-  } catch {
-    return NextResponse.json({ error: "Permintaan tidak valid." }, { status: 400 });
+  const creds = await parseCredentials(request);
+  if (!creds) {
+    return NextResponse.json(
+      { error: "Permintaan tidak valid atau body kosong. Muat ulang halaman dan coba lagi." },
+      { status: 400 },
+    );
   }
 
-  const acc = findAdminAccount(body.email ?? "", body.password ?? "");
+  const acc = findAdminAccount(creds.email, creds.password);
   if (!acc) {
     return NextResponse.json({ error: "Email atau password tidak valid." }, { status: 401 });
   }

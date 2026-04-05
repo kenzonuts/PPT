@@ -12,11 +12,13 @@ export async function loginAdminSession(
   email: string,
   password: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
+  const form = new FormData();
+  form.set("email", email);
+  form.set("password", password);
   const res = await fetch("/api/admin/session", {
     method: "POST",
     credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: form,
   });
   const j = (await res.json().catch(() => ({}))) as { error?: string };
   if (!res.ok) {
