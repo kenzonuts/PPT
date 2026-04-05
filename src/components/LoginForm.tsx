@@ -2,8 +2,8 @@
 
 import {
   credentialsValid,
-  isAdminSessionCookiePresent,
-  setAdminSessionCookie,
+  isAdminSessionActive,
+  loginAdminSession,
 } from "@/lib/auth-mock";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -23,12 +23,18 @@ function LoginFormInner() {
   const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     const dest = from.startsWith("/") ? from : "/admin";
-    if (isAdminSessionCookiePresent()) {
-      router.replace(dest);
-      return;
-    }
-    setShowForm(true);
+    void (async () => {
+      if (await isAdminSessionActive()) {
+        if (!cancelled) router.replace(dest);
+        return;
+      }
+      if (!cancelled) setShowForm(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [from, router]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -39,8 +45,13 @@ function LoginFormInner() {
       return;
     }
     setLoading(true);
-    setAdminSessionCookie();
-    await new Promise((r) => setTimeout(r, 200));
+    const result = await loginAdminSession(email, password);
+    if (!result.ok) {
+      setError(result.error);
+      setLoading(false);
+      return;
+    }
+    await new Promise((r) => setTimeout(r, 120));
     router.push(from.startsWith("/") ? from : "/admin");
     router.refresh();
     setLoading(false);
@@ -61,7 +72,7 @@ function LoginFormInner() {
         description="Akses terbatas untuk panitia. Sudah masuk? Kamu langsung diarahkan ke panel."
       />
       <CardBody>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
           <Input
             id="admin-email"
             type="email"
@@ -87,7 +98,6 @@ function LoginFormInner() {
             {loading ? "Memproses…" : "Masuk"}
           </Button>
         </form>
-
       </CardBody>
     </Card>
   );

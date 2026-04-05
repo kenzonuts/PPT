@@ -1,38 +1,43 @@
 /**
- * Autentikasi admin mock — untuk produksi ganti dengan Supabase Auth / session server.
+ * Event + panggilan API sesi admin dari klien (cookie httpOnly, tidak bisa dibaca dari JS).
  */
 
-import { ADMIN_SESSION_COOKIE, ADMIN_SESSION_VALUE } from "./auth-constants";
+import { credentialsValid } from "./admin-credentials";
 
-export const MOCK_ADMIN_EMAIL = "tuanmudakenzo@kenzo.id";
-export const MOCK_ADMIN_PASSWORD = "lagigamood";
-
-export function credentialsValid(email: string, password: string): boolean {
-  return (
-    email.trim().toLowerCase() === MOCK_ADMIN_EMAIL.toLowerCase() &&
-    password === MOCK_ADMIN_PASSWORD
-  );
-}
+export { credentialsValid };
 
 export const ADMIN_SESSION_CHANGED_EVENT = "funmatch-admin-session-changed";
 
-export function setAdminSessionCookie(): void {
-  if (typeof document === "undefined") return;
-  const maxAge = 60 * 60 * 24 * 7;
-  document.cookie = `${ADMIN_SESSION_COOKIE}=${ADMIN_SESSION_VALUE}; path=/; max-age=${maxAge}; SameSite=Lax`;
-  window.dispatchEvent(new Event(ADMIN_SESSION_CHANGED_EVENT));
-}
-
-export function clearAdminSessionCookie(): void {
-  if (typeof document === "undefined") return;
-  document.cookie = `${ADMIN_SESSION_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
-  window.dispatchEvent(new Event(ADMIN_SESSION_CHANGED_EVENT));
-}
-
-export function isAdminSessionCookiePresent(): boolean {
-  if (typeof document === "undefined") return false;
-  return document.cookie.split(";").some((c) => {
-    const [k, v] = c.trim().split("=");
-    return k === ADMIN_SESSION_COOKIE && v === ADMIN_SESSION_VALUE;
+export async function loginAdminSession(
+  email: string,
+  password: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const res = await fetch("/api/admin/session", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
   });
+  const j = (await res.json().catch(() => ({}))) as { error?: string };
+  if (!res.ok) {
+    return { ok: false, error: j.error ?? "Gagal masuk" };
+  }
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(ADMIN_SESSION_CHANGED_EVENT));
+  }
+  return { ok: true };
+}
+
+export async function logoutAdminSession(): Promise<void> {
+  await fetch("/api/admin/session", { method: "DELETE", credentials: "include" });
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(ADMIN_SESSION_CHANGED_EVENT));
+  }
+}
+
+export async function isAdminSessionActive(): Promise<boolean> {
+  const res = await fetch("/api/admin/session", { credentials: "include" });
+  if (!res.ok) return false;
+  const j = (await res.json().catch(() => ({}))) as { ok?: boolean };
+  return j.ok === true;
 }

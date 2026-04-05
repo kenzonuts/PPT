@@ -1,6 +1,6 @@
 "use client";
 
-import { isAdminSessionCookiePresent } from "@/lib/auth-mock";
+import { isAdminSessionActive } from "@/lib/auth-mock";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   mapLiveRosterToState,
@@ -69,7 +69,7 @@ export function TournamentProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     try {
       setLoadError(null);
-      const next = isAdminSessionCookiePresent()
+      const next = (await isAdminSessionActive())
         ? await fetchAdminState()
         : await fetchPublicState();
       setState(next);

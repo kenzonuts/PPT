@@ -1,11 +1,11 @@
 "use client";
 
 import { useTournament } from "@/context/tournament-context";
-import { clearAdminSessionCookie } from "@/lib/auth-mock";
+import { logoutAdminSession } from "@/lib/auth-mock";
 import type { Player, ValorantRank } from "@/lib/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { RankPicker } from "./RankPicker";
 import { Button } from "./ui/Button";
 import { Card, CardBody, CardHeader } from "./ui/Card";
@@ -13,6 +13,71 @@ import { Input } from "./ui/Input";
 
 const selectClass =
   "w-full rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--foreground)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition focus:border-[var(--accent)]/80 focus:ring-1 focus:ring-[var(--accent)]/40";
+
+type AuditLogItem = {
+  id: string;
+  created_at: string;
+  actor_display_name: string;
+  actor_email: string;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  changes: Record<string, unknown>;
+};
+
+function actionLabel(action: string): string {
+  switch (action) {
+    case "update_player":
+      return "Ubah peserta";
+    case "delete_player":
+      return "Hapus peserta";
+    case "create_team":
+      return "Buat tim";
+    case "delete_team":
+      return "Hapus tim";
+    case "assign_player":
+      return "Pindah tim";
+    default:
+      return action;
+  }
+}
+
+function summarizeAudit(entry: AuditLogItem): string {
+  const { action, changes } = entry;
+  if (action === "update_player") {
+    const parts: string[] = [];
+    const name = changes.name as { from?: string; to?: string } | undefined;
+    const rid = changes.riot_id as { from?: string; to?: string } | undefined;
+    if (name) parts.push(`nama: "${name.from}" → "${name.to}"`);
+    if (rid) parts.push(`Riot ID: "${rid.from}" → "${rid.to}"`);
+    return parts.join(" · ") || "Perubahan data peserta";
+  }
+  if (action === "assign_player") {
+    const tn = changes.team_name as { from?: string | null; to?: string | null } | undefined;
+    const player = changes.player as { name?: string } | undefined;
+    const p = player?.name ? player.name : "Peserta";
+    if (tn) {
+      const f = tn.from ?? "belum ditugaskan";
+      const t = tn.to ?? "belum ditugaskan";
+      return `${p}: tim "${f}" → "${t}"`;
+    }
+    return "Penugasan tim diubah";
+  }
+  if (action === "create_team") {
+    const n = changes.name as { to?: string } | undefined;
+    return n?.to ? `Tim baru: "${n.to}"` : "Tim baru";
+  }
+  if (action === "delete_team") {
+    const r = changes.removed as { name?: string } | undefined;
+    return r?.name ? `Tim dihapus: "${r.name}"` : "Tim dihapus";
+  }
+  if (action === "delete_player") {
+    const r = changes.removed as { name?: string; riot_id?: string } | undefined;
+    if (r?.name) return `Peserta dihapus: "${r.name}" (${r.riot_id ?? "—"})`;
+    return "Peserta dihapus";
+  }
+  return "";
+}
 
 function StatCard({
   label,
@@ -138,8 +203,28 @@ export function AdminDashboard() {
     return m;
   }, [state.team_members]);
 
-  function handleLogout() {
-    clearAdminSessionCookie();
+  const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+
+  const loadAuditLogs = useCallback(async () => {
+    setAuditLoading(true);
+    try {
+      const res = await fetch("/api/admin/audit?limit=40", { credentials: "include" });
+      if (!res.ok) return;
+      const j = (await res.json()) as { logs?: AuditLogItem[] };
+      setAuditLogs(j.logs ?? []);
+    } finally {
+      setAuditLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated || loadError) return;
+    void loadAuditLogs();
+  }, [hydrated, loadError, loadAuditLogs]);
+
+  async function handleLogout() {
+    await logoutAdminSession();
     router.push("/login");
     router.refresh();
   }
@@ -280,7 +365,7 @@ export function AdminDashboard() {
           </Link>
           <Button
             variant="ghost"
-            onClick={handleLogout}
+            onClick={() => void handleLogout()}
             className="w-full min-h-[44px] border border-[var(--border)] sm:w-auto"
           >
             Keluar
@@ -296,6 +381,61 @@ export function AdminDashboard() {
           <StatCard label="Belum ditugaskan" value={stats.unassigned} accent={stats.unassigned > 0} />
           <StatCard label="Jumlah tim" value={stats.teams} />
         </div>
+      </section>
+
+      <section aria-label="Riwayat perubahan">
+        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 flex-1 [&_.mb-3]:mb-0">
+            <SectionLabel>Riwayat perubahan admin</SectionLabel>
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            className="shrink-0 self-start sm:self-center"
+            disabled={auditLoading}
+            onClick={() => void loadAuditLogs()}
+          >
+            {auditLoading ? "Memuat…" : "Perbarui riwayat"}
+          </Button>
+        </div>
+        <Card className="shadow-[0_8px_40px_rgba(0,0,0,0.22)]">
+          <CardBody className="p-0">
+            {auditLogs.length === 0 && !auditLoading ? (
+              <p className="px-5 py-10 text-center text-sm text-[var(--muted)]">
+                Belum ada aktivitas tercatat.
+              </p>
+            ) : (
+              <div className="max-h-[min(420px,50vh)] overflow-auto">
+                <ul className="divide-y divide-[var(--border)]/80 text-sm">
+                  {auditLogs.map((log) => {
+                    const when = new Date(log.created_at).toLocaleString(undefined, {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    });
+                    const summary = summarizeAudit(log);
+                    return (
+                      <li key={log.id} className="px-4 py-3 sm:px-5">
+                        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                          <span className="font-medium text-[var(--accent)]">
+                            {log.actor_display_name}
+                          </span>
+                          <span className="text-[var(--muted)]">·</span>
+                          <span className="text-[var(--muted)]">{when}</span>
+                        </div>
+                        <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                          {actionLabel(log.action)}
+                        </p>
+                        {summary ? (
+                          <p className="mt-1 text-[var(--foreground)]/95">{summary}</p>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </CardBody>
+        </Card>
       </section>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:items-start lg:gap-10">

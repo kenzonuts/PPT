@@ -1,15 +1,13 @@
 "use client";
 
-import {
-  ADMIN_SESSION_CHANGED_EVENT,
-  isAdminSessionCookiePresent,
-} from "@/lib/auth-mock";
+import { ADMIN_SESSION_CHANGED_EVENT, isAdminSessionActive } from "@/lib/auth-mock";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 const links = [
   { href: "/", label: "Beranda" },
   { href: "/register", label: "Daftar" },
+  { href: "/pemain", label: "Daftar pemain" },
   { href: "/live", label: "Pembagian" },
   { href: "/bracket", label: "Bracket" },
 ];
@@ -19,15 +17,16 @@ export function Header() {
   const [adminLoggedIn, setAdminLoggedIn] = useState(false);
 
   const syncAdminSession = useCallback(() => {
-    setAdminLoggedIn(isAdminSessionCookiePresent());
+    void isAdminSessionActive().then(setAdminLoggedIn);
   }, []);
 
   useEffect(() => {
     syncAdminSession();
-    window.addEventListener("focus", syncAdminSession);
+    const onFocus = () => syncAdminSession();
+    window.addEventListener("focus", onFocus);
     window.addEventListener(ADMIN_SESSION_CHANGED_EVENT, syncAdminSession);
     return () => {
-      window.removeEventListener("focus", syncAdminSession);
+      window.removeEventListener("focus", onFocus);
       window.removeEventListener(ADMIN_SESSION_CHANGED_EVENT, syncAdminSession);
     };
   }, [syncAdminSession]);
