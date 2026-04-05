@@ -35,6 +35,10 @@ type TournamentContextValue = {
   assignPlayerToTeam: (playerId: string, teamId: string | null) => Promise<void>;
   deleteTeam: (teamId: string) => Promise<void>;
   deletePlayer: (playerId: string) => Promise<void>;
+  updatePlayer: (
+    playerId: string,
+    fields: { name: string; riot_id: string }
+  ) => Promise<void>;
   getTeamForPlayer: (playerId: string) => Team | null;
   getPlayersByTeam: (teamId: string) => Player[];
 };
@@ -173,6 +177,26 @@ export function TournamentProvider({ children }: { children: ReactNode }) {
     [refresh]
   );
 
+  const updatePlayerFn = useCallback(
+    async (playerId: string, fields: { name: string; riot_id: string }) => {
+      const res = await fetch(`/api/admin/players/${playerId}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: fields.name.trim(),
+          riot_id: fields.riot_id.trim(),
+        }),
+      });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(j.error ?? "Gagal memperbarui peserta");
+      }
+      await refresh();
+    },
+    [refresh]
+  );
+
   const getTeamForPlayer = useCallback(
     (playerId: string): Team | null => {
       const member = state.team_members.find((m) => m.player_id === playerId);
@@ -203,6 +227,7 @@ export function TournamentProvider({ children }: { children: ReactNode }) {
       assignPlayerToTeam: assignPlayerToTeamFn,
       deleteTeam: deleteTeamFn,
       deletePlayer: deletePlayerFn,
+      updatePlayer: updatePlayerFn,
       getTeamForPlayer,
       getPlayersByTeam,
     }),
@@ -216,6 +241,7 @@ export function TournamentProvider({ children }: { children: ReactNode }) {
       assignPlayerToTeamFn,
       deleteTeamFn,
       deletePlayerFn,
+      updatePlayerFn,
       getTeamForPlayer,
       getPlayersByTeam,
     ]

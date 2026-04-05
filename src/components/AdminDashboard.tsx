@@ -64,11 +64,15 @@ export function AdminDashboard() {
     assignPlayerToTeam,
     deleteTeam,
     deletePlayer,
+    updatePlayer,
     getTeamForPlayer,
   } = useTournament();
   const [newTeamName, setNewTeamName] = useState("");
   const [rankFilter, setRankFilter] = useState<ValorantRank | "">("");
   const [nameSearch, setNameSearch] = useState("");
+  const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
+  const [nameDraft, setNameDraft] = useState("");
+  const [riotDraft, setRiotDraft] = useState("");
 
   const teamsSorted = useMemo(
     () =>
@@ -90,7 +94,12 @@ export function AdminDashboard() {
     let list = playersSorted;
     if (rankFilter) list = list.filter((p) => p.rank === rankFilter);
     const q = nameSearch.trim().toLowerCase();
-    if (q) list = list.filter((p) => p.name.toLowerCase().includes(q));
+    if (q) {
+      list = list.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) || p.riot_id.toLowerCase().includes(q)
+      );
+    }
     return list;
   }, [playersSorted, rankFilter, nameSearch]);
 
@@ -100,7 +109,7 @@ export function AdminDashboard() {
     const parts: string[] = [];
     if (rankFilter) parts.push(`rank ${rankFilter}`);
     const nq = nameSearch.trim();
-    if (nq) parts.push(`nama “${nq}”`);
+    if (nq) parts.push(`nama / Riot ID “${nq}”`);
     if (parts.length === 0) return `Semua pendaftar · ${total} orang.`;
     return `Filter: ${parts.join(" · ")} — menampilkan ${shown} dari ${total} peserta.`;
   }, [playersSorted.length, playersFiltered.length, rankFilter, nameSearch]);
@@ -161,6 +170,43 @@ export function AdminDashboard() {
       await deleteTeam(teamId);
     } catch (err) {
       window.alert(err instanceof Error ? err.message : "Gagal menghapus tim");
+    }
+  }
+
+  function startEditPlayer(p: Player) {
+    setEditingPlayerId(p.id);
+    setNameDraft(p.name);
+    setRiotDraft(p.riot_id);
+  }
+
+  function cancelEditPlayer() {
+    setEditingPlayerId(null);
+    setNameDraft("");
+    setRiotDraft("");
+  }
+
+  async function savePlayerEdits(playerId: string) {
+    const n = nameDraft.trim();
+    const rid = riotDraft.trim();
+    if (!n) {
+      window.alert("Nama tidak boleh kosong.");
+      return;
+    }
+    if (!rid) {
+      window.alert("Riot ID wajib diisi.");
+      return;
+    }
+    if (!rid.includes("#")) {
+      window.alert(
+        "Riot ID harus memuat tanda # (contoh: Nama#tag), sesuai yang di game."
+      );
+      return;
+    }
+    try {
+      await updatePlayer(playerId, { name: n, riot_id: rid });
+      cancelEditPlayer();
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : "Gagal menyimpan perubahan");
     }
   }
 
@@ -258,12 +304,12 @@ export function AdminDashboard() {
             <SectionLabel>Filter & pencarian</SectionLabel>
             <Input
               id="admin-name-search"
-              label="Cari berdasarkan nama"
-              placeholder="Ketik nama peserta…"
+              label="Cari nama atau Riot ID"
+              placeholder="Ketik nama atau Riot ID…"
               value={nameSearch}
               onChange={(e) => setNameSearch(e.target.value)}
               autoComplete="off"
-              hint="Tidak case-sensitive; mencocokkan bagian nama."
+              hint="Tidak case-sensitive; mencocokkan bagian nama atau Riot ID."
             />
             <RankPicker id="admin-rank-filter" value={rankFilter} onChange={setRankFilter} />
           </div>
@@ -280,7 +326,7 @@ export function AdminDashboard() {
                 </div>
               ) : playersFiltered.length === 0 ? (
                 <div className="px-6 py-16 text-center text-sm text-[var(--muted)]">
-                  Tidak ada peserta yang cocok dengan filter saat ini. Sesuaikan pencarian nama,
+                  Tidak ada peserta yang cocok dengan filter saat ini. Sesuaikan pencarian,
                   pilih &quot;Semua rank&quot;, atau kosongkan kolom cari.
                 </div>
               ) : (
@@ -294,11 +340,60 @@ export function AdminDashboard() {
                           className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-elevated)]/60 pl-4 pr-4 py-4 shadow-[inset_3px_0_0_var(--accent)]"
                         >
                           <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="font-semibold text-[var(--foreground)]">{p.name}</p>
-                              <p className="mt-1 break-all font-mono text-xs text-[var(--accent)]">
-                                {p.riot_id}
-                              </p>
+                            <div className="min-w-0 flex-1">
+                              {editingPlayerId === p.id ? (
+                                <div className="space-y-2">
+                                  <input
+                                    id={`name-edit-${p.id}`}
+                                    className={`${selectClass} font-medium`}
+                                    value={nameDraft}
+                                    onChange={(e) => setNameDraft(e.target.value)}
+                                    autoComplete="off"
+                                    aria-label="Edit nama peserta"
+                                  />
+                                  <input
+                                    id={`riot-edit-${p.id}`}
+                                    className={`${selectClass} font-mono text-xs`}
+                                    value={riotDraft}
+                                    onChange={(e) => setRiotDraft(e.target.value)}
+                                    autoComplete="off"
+                                    aria-label="Edit Riot ID"
+                                  />
+                                  <div className="flex flex-wrap gap-2">
+                                    <Button
+                                      type="button"
+                                      className="px-3 py-1.5 text-xs"
+                                      onClick={() => void savePlayerEdits(p.id)}
+                                    >
+                                      Simpan
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="secondary"
+                                      className="px-3 py-1.5 text-xs"
+                                      onClick={cancelEditPlayer}
+                                    >
+                                      Batal
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <p className="font-semibold text-[var(--foreground)]">{p.name}</p>
+                                    <button
+                                      type="button"
+                                      className="text-xs font-medium text-[var(--accent)] underline-offset-2 hover:underline"
+                                      onClick={() => startEditPlayer(p)}
+                                    >
+                                      Ubah
+                                    </button>
+                                  </div>
+                                  <p className="mt-1 break-all font-mono text-xs text-[var(--accent)]">
+                                    {p.riot_id}
+                                  </p>
+                                </>
+                              )}
                             </div>
                             <span className="shrink-0 rounded-md border border-[var(--border)] bg-[var(--background)]/40 px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-wide text-[var(--muted)]">
                               {p.rank}
@@ -361,11 +456,63 @@ export function AdminDashboard() {
                                 key={p.id}
                                 className="bg-[var(--surface)]/30 transition hover:bg-[var(--surface-elevated)]/40"
                               >
-                                <td className="whitespace-nowrap px-5 py-3.5 font-medium text-[var(--foreground)]">
-                                  {p.name}
+                                <td className="min-w-[200px] px-5 py-3.5 align-top">
+                                  {editingPlayerId === p.id ? (
+                                    <div className="flex max-w-[240px] flex-col gap-2">
+                                      <input
+                                        className={`${selectClass} font-medium`}
+                                        value={nameDraft}
+                                        onChange={(e) => setNameDraft(e.target.value)}
+                                        autoComplete="off"
+                                        aria-label={`Edit nama peserta`}
+                                      />
+                                      <div className="flex flex-wrap gap-2">
+                                        <Button
+                                          type="button"
+                                          className="px-3 py-1.5 text-xs"
+                                          onClick={() => void savePlayerEdits(p.id)}
+                                        >
+                                          Simpan
+                                        </Button>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          className="px-3 py-1.5 text-xs"
+                                          onClick={cancelEditPlayer}
+                                        >
+                                          Batal
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className="font-medium text-[var(--foreground)]">
+                                        {p.name}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        className="shrink-0 text-xs font-medium text-[var(--accent)] underline-offset-2 hover:underline"
+                                        onClick={() => startEditPlayer(p)}
+                                      >
+                                        Ubah
+                                      </button>
+                                    </div>
+                                  )}
                                 </td>
-                                <td className="max-w-[180px] truncate px-5 py-3.5 font-mono text-xs text-[var(--accent)]">
-                                  {p.riot_id}
+                                <td className="max-w-[200px] px-5 py-3.5 align-top font-mono text-xs text-[var(--accent)]">
+                                  {editingPlayerId === p.id ? (
+                                    <input
+                                      className={`${selectClass} w-full max-w-[220px]`}
+                                      value={riotDraft}
+                                      onChange={(e) => setRiotDraft(e.target.value)}
+                                      autoComplete="off"
+                                      aria-label="Edit Riot ID"
+                                    />
+                                  ) : (
+                                    <span className="block truncate" title={p.riot_id}>
+                                      {p.riot_id}
+                                    </span>
+                                  )}
                                 </td>
                                 <td className="px-5 py-3.5 text-[var(--muted)]">{p.rank}</td>
                                 <td className="max-w-[200px] truncate px-5 py-3.5 text-[var(--muted)]">
