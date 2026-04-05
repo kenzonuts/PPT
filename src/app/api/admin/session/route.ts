@@ -20,23 +20,43 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  let body: { email?: string; password?: string };
   try {
-    const body = (await request.json()) as { email?: string; password?: string };
-    const acc = findAdminAccount(body.email ?? "", body.password ?? "");
-    if (!acc) {
-      return NextResponse.json({ error: "Email atau password tidak valid." }, { status: 401 });
-    }
-    const email = normalizeAdminEmail(acc.email);
-    const token = await createAdminSessionToken({
-      email,
-      displayName: acc.displayName,
-    });
-    const res = NextResponse.json({ ok: true });
-    res.cookies.set(ADMIN_SESSION_COOKIE, token, { ...baseCookie, maxAge: COOKIE_MAX_AGE });
-    return res;
+    body = (await request.json()) as { email?: string; password?: string };
   } catch {
     return NextResponse.json({ error: "Permintaan tidak valid." }, { status: 400 });
   }
+
+  const acc = findAdminAccount(body.email ?? "", body.password ?? "");
+  if (!acc) {
+    return NextResponse.json({ error: "Email atau password tidak valid." }, { status: 401 });
+  }
+
+  let token: string;
+  try {
+    const email = normalizeAdminEmail(acc.email);
+    token = await createAdminSessionToken({
+      email,
+      displayName: acc.displayName,
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "";
+    if (msg.includes("ADMIN_SESSION_SECRET")) {
+      return NextResponse.json(
+        {
+          error:
+            "Server belum dikonfigurasi: tambahkan ENV ADMIN_SESSION_SECRET (minimal 16 karakter) di panel deploy, lalu redeploy.",
+        },
+        { status: 503 },
+      );
+    }
+    console.error("admin session token error", e);
+    return NextResponse.json({ error: "Gagal membuat sesi." }, { status: 500 });
+  }
+
+  const res = NextResponse.json({ ok: true });
+  res.cookies.set(ADMIN_SESSION_COOKIE, token, { ...baseCookie, maxAge: COOKIE_MAX_AGE });
+  return res;
 }
 
 export async function DELETE() {
