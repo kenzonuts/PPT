@@ -11,6 +11,7 @@ const links = [
   { href: "/", label: "Beranda" },
   { href: "/register", label: "Daftar" },
   { href: "/live", label: "Pembagian" },
+  { href: "/bracket", label: "Bracket" },
 ];
 
 export function Header() {
